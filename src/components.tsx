@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @on.auto/ui-components — component map for json-render.
+ * @onauto/ui-components — component map for json-render.
  *
  * Each ComponentFn is an adapter that bridges json-render's spec format
  * to our shadcn/ui components. The adapter handles:
