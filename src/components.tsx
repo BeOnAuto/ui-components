@@ -148,14 +148,46 @@ import {
 // ---------------------------------------------------------------------------
 
 type Props = Record<string, unknown>;
+type Bindings = Record<string, string | undefined>;
 type ComponentFn = (ctx: {
   props: Props;
   children?: ReactNode;
-  bindings?: Props;
+  bindings?: Bindings;
   emit?: (event: string) => void;
   on?: (event: string) => { shouldPreventDefault: boolean; emit: () => void };
   loading?: boolean;
 }) => ReactNode;
+
+// ---------------------------------------------------------------------------
+// Narrowing helpers — JSON props arrive as `unknown`; these return the value
+// only when it matches the expected runtime shape, else `undefined`. Avoids
+// type assertions at call sites.
+// ---------------------------------------------------------------------------
+
+const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
+const bool = (v: unknown): boolean => v === true;
+const asValidateOn = (v: unknown): 'change' | 'blur' | 'submit' =>
+  v === 'change' || v === 'blur' || v === 'submit' ? v : 'blur';
+const asChecks = (v: unknown): Array<{ type: string; message: string }> =>
+  Array.isArray(v)
+    ? v.filter(
+        (c): c is { type: string; message: string } =>
+          typeof c === 'object' &&
+          c !== null &&
+          typeof (c as { type: unknown }).type === 'string' &&
+          typeof (c as { message: unknown }).message === 'string',
+      )
+    : [];
+const asSparklineData = (v: unknown): Array<{ value: number }> | number[] | undefined => {
+  if (!Array.isArray(v) || v.length === 0) return undefined;
+  if (typeof v[0] === 'number') return v.filter((x): x is number => typeof x === 'number');
+  const objs = v.filter(
+    (x): x is { value: number } =>
+      typeof x === 'object' && x !== null && typeof (x as { value: unknown }).value === 'number',
+  );
+  return objs.length > 0 ? objs : undefined;
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -287,11 +319,11 @@ const CardAdapter: ComponentFn = ({ props, children }) => {
           : 'w-full';
   const userCn = typeof props.className === 'string' ? makeWidthsResponsive(props.className) : undefined;
   return (
-    <Card className={cn(mw, props.centered && 'mx-auto', userCn)}>
-      {(props.title || props.description) && (
+    <Card className={cn(mw, bool(props.centered) && 'mx-auto', userCn)}>
+      {(str(props.title) || str(props.description)) && (
         <CardHeader>
-          {props.title && <CardTitle>{props.title as string}</CardTitle>}
-          {props.description && <CardDescription>{props.description as string}</CardDescription>}
+          {str(props.title) && <CardTitle>{str(props.title)}</CardTitle>}
+          {str(props.description) && <CardDescription>{str(props.description)}</CardDescription>}
         </CardHeader>
       )}
       <CardContent className="flex flex-col gap-3">{children}</CardContent>
@@ -477,8 +509,8 @@ const AlertAdapter: ComponentFn = ({ props }) => {
           : '';
   return (
     <ShadcnAlert variant={t === 'error' ? 'destructive' : 'default'} className={typeClass}>
-      <AlertTitle>{props.title as string}</AlertTitle>
-      {props.message && <AlertDescription>{props.message as string}</AlertDescription>}
+      <AlertTitle>{str(props.title)}</AlertTitle>
+      {str(props.message) && <AlertDescription>{str(props.message)}</AlertDescription>}
     </ShadcnAlert>
   );
 };
@@ -499,7 +531,7 @@ const TableAdapter: ComponentFn = ({ props }) => {
     <div className={cn('w-full rounded-md border border-border', props.className as string)}>
       <div className="w-full overflow-x-auto">
         <ShadcnTable>
-          {props.caption && <TableCaption>{props.caption as string}</TableCaption>}
+          {str(props.caption) && <TableCaption>{str(props.caption)}</TableCaption>}
           <TableHeader>
             <TableRow>
               {columns.map((c) => (
@@ -587,7 +619,7 @@ const ProgressAdapter: ComponentFn = ({ props }) => {
   const val = Math.min(100, Math.max(0, (props.value as number) || 0));
   return (
     <div className="space-y-2">
-      {props.label && <Label>{props.label as string}</Label>}
+      {str(props.label) && <Label>{str(props.label)}</Label>}
       <ShadcnProgress value={val} />
     </div>
   );
@@ -611,7 +643,7 @@ const Spinner: ComponentFn = ({ props }) => {
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
       </svg>
-      {props.label && <span className="text-sm text-muted-foreground">{props.label as string}</span>}
+      {str(props.label) && <span className="text-sm text-muted-foreground">{str(props.label)}</span>}
     </div>
   );
 };
@@ -626,8 +658,8 @@ const DialogAdapter: ComponentFn = ({ props, children }) => {
     <ShadcnDialog open={!!open} onOpenChange={(v) => setOpen(v)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{props.title as string}</DialogTitle>
-          {props.description && <DialogDescription>{props.description as string}</DialogDescription>}
+          <DialogTitle>{str(props.title)}</DialogTitle>
+          {str(props.description) && <DialogDescription>{str(props.description)}</DialogDescription>}
         </DialogHeader>
         {children}
       </DialogContent>
@@ -641,8 +673,8 @@ const DrawerAdapter: ComponentFn = ({ props, children }) => {
     <ShadcnDrawer open={!!open} onOpenChange={(v) => setOpen(v)}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>{props.title as string}</DrawerTitle>
-          {props.description && <DrawerDescription>{props.description as string}</DrawerDescription>}
+          <DrawerTitle>{str(props.title)}</DrawerTitle>
+          {str(props.description) && <DrawerDescription>{str(props.description)}</DrawerDescription>}
         </DrawerHeader>
         <div className="p-4">{children}</div>
       </DrawerContent>
@@ -676,7 +708,7 @@ const PopoverAdapter: ComponentFn = ({ props }) => (
 
 const DropdownMenuAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
   const items = (props.items as Array<{ label: string; value: string }>) ?? [];
-  const [, setValue] = useBoundProp(props.value, (bindings as Record<string, unknown>)?.value);
+  const [, setValue] = useBoundProp(props.value, bindings?.value);
   return (
     <ShadcnDropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -735,22 +767,23 @@ const LinkAdapter: ComponentFn = ({ props, on }) => (
 );
 
 const InputAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState('');
   const isBound = !!b?.value;
   const current = isBound ? (value ?? '') : local;
   const setter = isBound ? setValue : setLocal;
-  const validateOn = (props.validateOn as string) ?? 'blur';
-  const hasChecks = !!(b?.value && (props.checks as unknown[])?.length);
+  const validateOn = asValidateOn(props.validateOn);
+  const checks = asChecks(props.checks);
+  const hasChecks = !!(b?.value && checks.length);
   const { errors, validate } = useFieldValidation(
-    (b?.value as string) ?? '',
-    hasChecks ? { checks: (props.checks as Array<{ type: string; message: string }>) ?? [], validateOn } : undefined,
+    b?.value ?? '',
+    hasChecks ? { checks, validateOn } : undefined,
   );
 
   return (
     <div className="space-y-2">
-      {props.label && <Label htmlFor={props.name as string}>{props.label as string}</Label>}
+      {str(props.label) && <Label htmlFor={str(props.name)}>{str(props.label)}</Label>}
       <ShadcnInput
         id={props.name as string}
         name={props.name as string}
@@ -776,22 +809,23 @@ const InputAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const TextareaAdapter: ComponentFn = ({ props, bindings }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState('');
   const isBound = !!b?.value;
   const current = isBound ? (value ?? '') : local;
   const setter = isBound ? setValue : setLocal;
-  const validateOn = (props.validateOn as string) ?? 'blur';
-  const hasChecks = !!(b?.value && (props.checks as unknown[])?.length);
+  const validateOn = asValidateOn(props.validateOn);
+  const checks = asChecks(props.checks);
+  const hasChecks = !!(b?.value && checks.length);
   const { errors, validate } = useFieldValidation(
-    (b?.value as string) ?? '',
-    hasChecks ? { checks: (props.checks as Array<{ type: string; message: string }>) ?? [], validateOn } : undefined,
+    b?.value ?? '',
+    hasChecks ? { checks, validateOn } : undefined,
   );
 
   return (
     <div className="space-y-2">
-      {props.label && <Label>{props.label as string}</Label>}
+      {str(props.label) && <Label>{str(props.label)}</Label>}
       <ShadcnTextarea
         name={props.name as string}
         placeholder={(props.placeholder as string) ?? ''}
@@ -811,7 +845,7 @@ const TextareaAdapter: ComponentFn = ({ props, bindings }) => {
 };
 
 const SelectAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState('');
   const isBound = !!b?.value;
@@ -845,7 +879,7 @@ const SelectAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const CheckboxAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [checked, setChecked] = useBoundProp(props.checked, b?.checked);
   const [local, setLocal] = useState(!!props.checked);
   const isBound = !!b?.checked;
@@ -869,7 +903,7 @@ const CheckboxAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const RadioAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const options = ((props.options as unknown[]) ?? []).map((o) => String(o ?? ''));
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState(options[0] ?? '');
@@ -878,7 +912,7 @@ const RadioAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
   const setter = isBound ? setValue : setLocal;
   return (
     <div className="space-y-2">
-      {props.label && <Label>{props.label as string}</Label>}
+      {str(props.label) && <Label>{str(props.label)}</Label>}
       <RadioGroup
         value={current}
         onValueChange={(v) => {
@@ -900,7 +934,7 @@ const RadioAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const SwitchAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [checked, setChecked] = useBoundProp(props.checked, b?.checked);
   const [local, setLocal] = useState(!!props.checked);
   const isBound = !!b?.checked;
@@ -924,7 +958,7 @@ const SwitchAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const SliderAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const min = (props.min as number) ?? 0;
   const max = (props.max as number) ?? 100;
   const [value, setValue] = useBoundProp(props.value, b?.value);
@@ -934,9 +968,9 @@ const SliderAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
   const setter = isBound ? setValue : setLocal;
   return (
     <div className="space-y-2">
-      {props.label && (
+      {str(props.label) && (
         <div className="flex justify-between">
-          <Label>{props.label as string}</Label>
+          <Label>{str(props.label)}</Label>
           <span className="text-sm text-muted-foreground">{current}</span>
         </div>
       )}
@@ -955,7 +989,7 @@ const SliderAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const ToggleAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [pressed, setPressed] = useBoundProp(props.pressed, b?.pressed);
   const [local, setLocal] = useState(!!props.pressed);
   const isBound = !!b?.pressed;
@@ -976,7 +1010,7 @@ const ToggleAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const ToggleGroupAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const items = (props.items as Array<{ label: string; value: string }>) ?? [];
   const isMulti = props.type === 'multiple';
   const [value, setValue] = useBoundProp(props.value, b?.value);
@@ -1020,7 +1054,7 @@ const ToggleGroupAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const ButtonGroupAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const buttons = (props.buttons as Array<{ label: string; value: string }>) ?? [];
   const [selected, setSelected] = useBoundProp(props.selected, b?.selected);
   const [local, setLocal] = useState(buttons[0]?.value ?? '');
@@ -1052,7 +1086,7 @@ const ButtonGroupAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 };
 
 const PaginationAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const total = (props.totalPages as number) ?? 1;
   const [page, setPage] = useBoundProp(props.page, b?.page);
   const [local, setLocal] = useState(1);
@@ -1181,7 +1215,7 @@ const CalloutAdapter: ComponentFn = ({ props }) => {
 };
 
 const SegmentedControlAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const options = (props.options as Array<{ value: string; label: string }>) ?? [];
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState((options[0]?.value as string | undefined) ?? '');
@@ -1202,29 +1236,28 @@ const SegmentedControlAdapter: ComponentFn = ({ props, bindings, emit: emitFn })
 };
 
 const KPICardAdapter: ComponentFn = ({ props }) => {
-  const rawSpark = props.sparklineData;
-  const sparklineData = Array.isArray(rawSpark) ? (rawSpark as Array<{ value: number } | number>) : undefined;
+  const rawValue = props.value;
+  const value = typeof rawValue === 'string' || typeof rawValue === 'number' ? rawValue : '';
+  const trend = props.trend === 'up' || props.trend === 'down' || props.trend === 'flat' ? props.trend : undefined;
   return (
     <KPICard
-      label={(props.label as string) ?? ''}
-      value={(props.value as string | number) ?? ''}
-      delta={props.delta as number | undefined}
-      trend={props.trend as 'up' | 'down' | 'flat' | undefined}
-      sparklineData={sparklineData}
-      className={props.className as string | undefined}
+      label={str(props.label) ?? ''}
+      value={value}
+      delta={num(props.delta)}
+      trend={trend}
+      sparklineData={asSparklineData(props.sparklineData)}
+      className={str(props.className)}
     />
   );
 };
 
 const SparklineAdapter: ComponentFn = ({ props }) => {
-  const rawData = props.data;
-  const data = Array.isArray(rawData) ? (rawData as Array<{ value: number } | number>) : [];
   return (
     <Sparkline
-      data={data}
-      color={(props.color as string | undefined) ?? '#3b82f6'}
-      height={(props.height as number | undefined) ?? 30}
-      width={(props.width as number | undefined) ?? 120}
+      data={asSparklineData(props.data) ?? []}
+      color={str(props.color) ?? '#3b82f6'}
+      height={num(props.height) ?? 30}
+      width={num(props.width) ?? 120}
     />
   );
 };
@@ -1239,8 +1272,8 @@ const SheetAdapter: ComponentFn = ({ props, children }) => {
     <ShadcnSheet open={!!open} onOpenChange={(v) => setOpen(v)}>
       <SheetContent side={(props.side as SheetSide) ?? 'right'}>
         <SheetHeader>
-          {props.title && <SheetTitle>{props.title as string}</SheetTitle>}
-          {props.description && <SheetDescription>{props.description as string}</SheetDescription>}
+          {str(props.title) && <SheetTitle>{str(props.title)}</SheetTitle>}
+          {str(props.description) && <SheetDescription>{str(props.description)}</SheetDescription>}
         </SheetHeader>
         <div className="flex flex-col gap-3">{children}</div>
       </SheetContent>
@@ -1259,8 +1292,8 @@ const AlertDialogAdapter: ComponentFn = ({ props, emit: emitFn }) => {
     <ShadcnAlertDialog open={!!open} onOpenChange={(v) => setOpen(v)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{props.title as string}</AlertDialogTitle>
-          {props.description && <AlertDialogDescription>{props.description as string}</AlertDialogDescription>}
+          <AlertDialogTitle>{str(props.title)}</AlertDialogTitle>
+          {str(props.description) && <AlertDialogDescription>{str(props.description)}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
@@ -1347,7 +1380,7 @@ interface SidebarGroup {
 }
 
 const SidebarAdapter: ComponentFn = ({ props, children, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const groups = ((props.groups as SidebarGroup[] | undefined) ?? null) as SidebarGroup[] | null;
   const flatItems = (props.items as SidebarItem[] | undefined) ?? null;
   const [value, setValue] = useBoundProp(props.value, b?.value);
@@ -1381,9 +1414,9 @@ const SidebarAdapter: ComponentFn = ({ props, children, bindings, emit: emitFn }
   return (
     <SidebarProvider className={cn('w-full', props.className as string | undefined)}>
       <ShadcnSidebar className="hidden min-[900px]:flex min-[900px]:w-64">
-        {props.title && (
+        {str(props.title) && (
           <SidebarHeader>
-            <p className="text-sm font-semibold">{props.title as string}</p>
+            <p className="text-sm font-semibold">{str(props.title)}</p>
           </SidebarHeader>
         )}
         <SidebarContent>
@@ -1402,9 +1435,9 @@ const SidebarAdapter: ComponentFn = ({ props, children, bindings, emit: emitFn }
             <SidebarMenu>{flatItems.map(renderItem)}</SidebarMenu>
           ) : null}
         </SidebarContent>
-        {props.footer && (
+        {str(props.footer) && (
           <SidebarFooter>
-            <span className="text-xs text-muted-foreground">{props.footer as string}</span>
+            <span className="text-xs text-muted-foreground">{str(props.footer)}</span>
           </SidebarFooter>
         )}
       </ShadcnSidebar>
@@ -1425,7 +1458,7 @@ interface CommandItemEntry {
 }
 
 const CommandAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const items = (props.items as CommandItemEntry[] | undefined) ?? [];
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState('');
@@ -1477,7 +1510,7 @@ interface OptionEntry {
 }
 
 const ComboboxAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const options = (props.options as OptionEntry[] | undefined) ?? [];
   const [open, setOpen] = useState(false);
   const [value, setValue] = useBoundProp(props.value, b?.value);
@@ -1527,7 +1560,7 @@ const ComboboxAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 // ---------------------------------------------------------------------------
 
 const MultiSelectAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const options = (props.options as OptionEntry[] | undefined) ?? [];
   const [open, setOpen] = useState(false);
   const [value, setValue] = useBoundProp(props.value, b?.value);
@@ -1580,7 +1613,7 @@ const MultiSelectAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 // ---------------------------------------------------------------------------
 
 const CalendarAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const mode = (props.mode as 'single' | 'range' | 'multiple' | undefined) ?? 'single';
   const [value, setValue] = useBoundProp(props.selected, b?.selected);
   const [local, setLocal] = useState<unknown>(undefined);
@@ -1636,7 +1669,7 @@ function toDate(v: unknown): Date | undefined {
 }
 
 const DatePickerAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState<string | undefined>(undefined);
@@ -1674,7 +1707,7 @@ const DatePickerAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
 // ---------------------------------------------------------------------------
 
 const DateRangePickerAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useBoundProp(props.value, b?.value);
   const [local, setLocal] = useState<DateRange | undefined>(undefined);
@@ -1752,7 +1785,7 @@ interface DataTableColumnSpec {
 }
 
 const DataTableAdapter: ComponentFn = ({ props, bindings }) => {
-  const b = bindings as Record<string, unknown> | undefined;
+  const b = bindings;
   const rawColumns = (props.columns as Record<string, unknown>[] | undefined) ?? [];
   const columnSpecs = rawColumns.map(normalizeColumnSpec) as DataTableColumnSpec[];
   const [data] = useBoundProp(props.data, b?.data);
