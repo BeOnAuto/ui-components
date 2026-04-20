@@ -47,7 +47,11 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "release": "node scripts/release.mjs",
+    "release:patch": "pnpm release patch",
+    "release:minor": "pnpm release minor",
+    "release:major": "pnpm release major"
   },
   "publishConfig": {
     "access": "public"
