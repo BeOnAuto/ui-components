@@ -225,9 +225,9 @@ function softenFixedHeights(className: string): string {
 // `w-full` on an absolute child means 100% of the positioned parent — which
 // is typically the viewport, blowing them up from a 288px overlay to a
 // full-width overlay. Keep their fixed widths as-is.
-const fixedWidthRe = /\bw-(48|52|56|60|64|72|80|96)\b/g;
+const fixedWidthRe = /(?<![:\w-])w-(48|52|56|60|64|72|80|96)\b/g;
 const positionedRe = /\b(absolute|fixed|sticky)\b/;
-function makeWidthsResponsive(className: string): string {
+export function makeWidthsResponsive(className: string): string {
   if (positionedRe.test(className)) return className;
   return className.replace(fixedWidthRe, (_, n) => `w-full min-[900px]:w-${n}`);
 }
