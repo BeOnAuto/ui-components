@@ -185,9 +185,16 @@ export const catalog = {
     description: 'Button',
   },
   Link: {
-    props: z.object({ label: z.string(), href: z.string().nullable() }),
+    props: z.object({
+      label: z.string().nullable(),
+      href: z.string().nullable(),
+      replace: z.boolean().nullable(),
+      className: z.string().nullable(),
+    }),
+    slots: ['default'],
     events: ['press'],
-    description: 'Anchor link',
+    description:
+      'Anchor link. Renders children when given, otherwise falls back to `label`. Performs SPA navigation via NavigationProvider when one is mounted; left-clicks without modifier keys are intercepted, modifier-clicks and external URLs fall through to the browser.',
   },
   Input: {
     props: z.object({

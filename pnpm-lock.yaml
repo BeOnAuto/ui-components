@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@json-render/core':
-        specifier: ^0.16.0
-        version: 0.16.0(zod@3.25.76)
+        specifier: ^0.18.0
+        version: 0.18.0(zod@4.4.3)
       '@json-render/react':
-        specifier: ^0.16.0
-        version: 0.16.0(react@19.2.3)(zod@3.25.76)
+        specifier: ^0.18.0
+        version: 0.18.0(react@19.2.3)(zod@4.4.3)
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -111,8 +111,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       zod:
-        specifier: ^3.25.42
-        version: 3.25.76
+        specifier: ^4.0.0
+        version: 4.4.3
     devDependencies:
       '@types/react':
         specifier: 19.2.7
@@ -422,13 +422,13 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@json-render/core@0.16.0':
-    resolution: {integrity: sha512-qQp8BB/3pWYapTGXBDSBMXRCdrC05VJPLL3drXMPX/QbUB3nuvtyXUGmAZFUz8eLUy7JImODvb3GNIq38dGzhQ==}
+  '@json-render/core@0.18.0':
+    resolution: {integrity: sha512-zm0K9cgxZLGshw5TmdKe3Xc6fpjbONdlj3v+Er+HhCYZ9fSJpv32d9VzQds4bDW36vPfdieAOcsPR9+EcTff7Q==}
     peerDependencies:
       zod: ^4.0.0
 
-  '@json-render/react@0.16.0':
-    resolution: {integrity: sha512-PJQjLftGYZ5LNlA1IFww+yNOAJZRW2feEcH/L10u/8M/b/zImr9wfqQVMDyC87myoEzhyucpkQ6joISeZdKxsw==}
+  '@json-render/react@0.18.0':
+    resolution: {integrity: sha512-rT0hJ9mK2BGfLxZ/ztS4UF1XqAz/o+FNtFgii7hea7VjD4u0wJYyRphe4a5DetS/dSMZFECXkmida+xi3wKl9A==}
     peerDependencies:
       react: ^19.2.3
 
@@ -2203,8 +2203,8 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -2447,13 +2447,13 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@json-render/core@0.16.0(zod@3.25.76)':
+  '@json-render/core@0.18.0(zod@4.4.3)':
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
 
-  '@json-render/react@0.16.0(react@19.2.3)(zod@3.25.76)':
+  '@json-render/react@0.18.0(react@19.2.3)(zod@4.4.3)':
     dependencies:
-      '@json-render/core': 0.16.0(zod@3.25.76)
+      '@json-render/core': 0.18.0(zod@4.4.3)
       react: 19.2.3
     transitivePeerDependencies:
       - zod
@@ -4232,4 +4232,4 @@ snapshots:
 
   yallist@3.1.1: {}
 
-  zod@3.25.76: {}
+  zod@4.4.3: {}

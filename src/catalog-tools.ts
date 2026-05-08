@@ -1,16 +1,5 @@
-/**
- * catalog-tools.ts — Auto-generates LLM tool data from the component catalog.
- *
- * Used by the generate pipeline to give the LLM dynamic access to component
- * definitions via tools, instead of hardcoding them in the system prompt.
- */
-
 import { catalog } from './catalog';
 import type { z } from 'zod';
-
-// ---------------------------------------------------------------------------
-// Category mapping
-// ---------------------------------------------------------------------------
 
 const categoryMap: Record<string, string> = {
   Card: 'Layout',
@@ -75,10 +64,6 @@ const categoryMap: Record<string, string> = {
   Field: 'Input',
 };
 
-// ---------------------------------------------------------------------------
-// Zod introspection helpers
-// ---------------------------------------------------------------------------
-
 export interface PropInfo {
   type: string;
   required: boolean;
@@ -86,34 +71,63 @@ export interface PropInfo {
   description?: string;
 }
 
-function extractZodType(schema: z.ZodTypeAny): PropInfo {
-  const def = (schema as { _def: Record<string, unknown> })._def;
-  const typeName = def.typeName as string;
+interface ZodInternalDef {
+  type?: string;
+  innerType?: unknown;
+  entries?: Record<string, unknown> | unknown[];
+}
 
-  // Nullable wraps an inner type
-  if (typeName === 'ZodNullable' || typeName === 'ZodOptional') {
+function readZodDef(schema: unknown): ZodInternalDef | null {
+  const v4 = (schema as { _zod?: { def?: ZodInternalDef } })?._zod?.def;
+  if (v4) return v4;
+  const v3 = (schema as { _def?: { typeName?: string; innerType?: unknown; values?: unknown[] } })?._def;
+  if (v3) {
+    const map: Record<string, string> = {
+      ZodNullable: 'nullable',
+      ZodOptional: 'optional',
+      ZodEnum: 'enum',
+      ZodString: 'string',
+      ZodNumber: 'number',
+      ZodBoolean: 'boolean',
+      ZodArray: 'array',
+      ZodObject: 'object',
+      ZodAny: 'any',
+    };
+    return {
+      type: map[v3.typeName ?? ''] ?? 'unknown',
+      innerType: v3.innerType,
+      entries: v3.values,
+    };
+  }
+  return null;
+}
+
+function enumValues(entries: ZodInternalDef['entries']): string[] {
+  if (!entries) return [];
+  if (Array.isArray(entries)) return entries.filter((v): v is string => typeof v === 'string');
+  return Object.values(entries).filter((v): v is string => typeof v === 'string');
+}
+
+function extractZodType(schema: z.ZodTypeAny): PropInfo {
+  const def = readZodDef(schema);
+  if (!def) return { type: 'unknown', required: true };
+  const type = def.type ?? 'unknown';
+
+  if (type === 'nullable' || type === 'optional') {
     const inner = extractZodType(def.innerType as z.ZodTypeAny);
     return { ...inner, required: false };
   }
 
-  if (typeName === 'ZodEnum') {
-    const values = (def.values as string[]) ?? [];
-    return { type: 'enum', required: true, values };
+  if (type === 'enum') {
+    return { type: 'enum', required: true, values: enumValues(def.entries) };
   }
 
-  if (typeName === 'ZodString') return { type: 'string', required: true };
-  if (typeName === 'ZodNumber') return { type: 'number', required: true };
-  if (typeName === 'ZodBoolean') return { type: 'boolean', required: true };
-
-  if (typeName === 'ZodArray') {
-    return { type: 'array', required: true };
-  }
-
-  if (typeName === 'ZodObject') {
-    return { type: 'object', required: true };
-  }
-
-  if (typeName === 'ZodAny') return { type: 'any', required: false };
+  if (type === 'string') return { type: 'string', required: true };
+  if (type === 'number') return { type: 'number', required: true };
+  if (type === 'boolean') return { type: 'boolean', required: true };
+  if (type === 'array') return { type: 'array', required: true };
+  if (type === 'object') return { type: 'object', required: true };
+  if (type === 'any') return { type: 'any', required: false };
 
   return { type: 'unknown', required: true };
 }
@@ -126,10 +140,6 @@ function extractProps(propsSchema: z.ZodObject<z.ZodRawShape>): Record<string, P
   }
   return result;
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 export interface ComponentListItem {
   name: string;
@@ -180,10 +190,6 @@ export function getComponentDetails(name: string): ComponentDetails | null {
   };
 }
 
-/**
- * Returns a JSON Schema for the nested spec format that the LLM submits.
- * This is used as the inputSchema for the submit_spec tool.
- */
 export function getSubmitSpecJsonSchema() {
   return {
     type: 'object' as const,

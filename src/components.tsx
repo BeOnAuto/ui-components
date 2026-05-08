@@ -14,6 +14,7 @@
 import { createElement, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useBoundProp, useStateBinding, useFieldValidation } from '@json-render/react';
 import { cn } from './lib/utils';
+import { useNavigate } from './lib/navigation';
 
 // shadcn/ui components
 import { Button as ShadcnButton } from './ui/button';
@@ -749,22 +750,49 @@ const ButtonAdapter: ComponentFn = ({ props, emit: emitFn }) => {
   );
 };
 
-const LinkAdapter: ComponentFn = ({ props, on }) => (
-  <a
-    href={(props.href as string) ?? '#'}
-    className={cn(
-      'text-primary underline-offset-4 hover:underline text-sm font-medium',
-      props.className as string | undefined,
-    )}
-    onClick={(e) => {
-      const h = on?.('press');
-      if (h?.shouldPreventDefault) e.preventDefault();
-      h?.emit();
-    }}
-  >
-    {props.label as string}
-  </a>
-);
+const LinkAdapter: ComponentFn = ({ props, children, on }) => {
+  const navigate = useNavigate();
+  const href = (props.href as string) ?? '#';
+  const replace = bool(props.replace);
+  const label = str(props.label);
+  const className = str(props.className);
+
+  return (
+    <a
+      href={href}
+      className={cn(
+        'text-primary underline-offset-4 hover:underline text-sm font-medium',
+        className,
+      )}
+      onClick={(e) => {
+        const h = on?.('press');
+        if (h?.shouldPreventDefault) e.preventDefault();
+        h?.emit();
+
+        if (
+          navigate &&
+          !e.defaultPrevented &&
+          e.button === 0 &&
+          !e.metaKey &&
+          !e.ctrlKey &&
+          !e.shiftKey &&
+          !e.altKey &&
+          !isExternalHref(href)
+        ) {
+          e.preventDefault();
+          navigate(href);
+        }
+      }}
+      data-replace={replace ? 'true' : undefined}
+    >
+      {children ?? label}
+    </a>
+  );
+};
+
+function isExternalHref(href: string): boolean {
+  return /^(https?:|mailto:|tel:)/i.test(href) || href.startsWith('//');
+}
 
 const InputAdapter: ComponentFn = ({ props, bindings, emit: emitFn }) => {
   const b = bindings;
@@ -1948,6 +1976,8 @@ const StepperAdapter: ComponentFn = ({ props }) => {
 // ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
+
+export { NavigationProvider, useNavigate, type NavigateFn } from './lib/navigation';
 
 export const components: Record<string, ComponentFn> = {
   Card: CardAdapter,
