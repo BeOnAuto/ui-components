@@ -4,6 +4,7 @@ coverage
 .turbo
 *.tgz
 storybook-static
+.claude/
 
 # Editor
 .DS_Store
