@@ -3,6 +3,7 @@ dist
 coverage
 .turbo
 *.tgz
+storybook-static
 
 # Editor
 .DS_Store
