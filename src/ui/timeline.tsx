@@ -27,7 +27,7 @@ function Timeline({ items, className }: { items: TimelineItem[]; className?: str
       {items.map((item, i) => (
         <li key={i} className="relative flex gap-4 pl-2">
           {i < items.length - 1 && (
-            <span className="absolute left-[15px] top-8 h-full w-px bg-border" aria-hidden="true" />
+            <span className="absolute left-6 top-8 h-full w-px bg-border" aria-hidden="true" />
           )}
           <div
             className={cn(
