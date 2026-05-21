@@ -35,6 +35,10 @@
     "./catalog-tools": {
       "types": "./dist/catalog-tools.d.ts",
       "import": "./dist/catalog-tools.js"
+    },
+    "./openui": {
+      "types": "./dist/openui.d.ts",
+      "import": "./dist/openui.js"
     }
   },
   "files": [
