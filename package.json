@@ -1,6 +1,6 @@
 {
   "name": "@onauto/ui-components",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Shared React component library built on shadcn/ui primitives, used across the on.auto platform.",
   "homepage": "https://github.com/BeOnAuto/ui-components#readme",
   "bugs": {
