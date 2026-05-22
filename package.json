@@ -2,16 +2,21 @@
   "name": "@onauto/ui-components",
   "version": "1.2.2",
   "description": "Shared React component library built on shadcn/ui primitives, used across the on.auto platform.",
+  "homepage": "https://github.com/BeOnAuto/ui-components#readme",
+  "bugs": {
+    "url": "https://github.com/BeOnAuto/ui-components/issues"
+  },
   "license": "MIT",
   "author": "on.auto",
-  "homepage": "https://github.com/BeOnAuto/ui-components#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BeOnAuto/ui-components.git"
   },
-  "bugs": {
-    "url": "https://github.com/BeOnAuto/ui-components/issues"
-  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
   "sideEffects": [
     "**/*.css"
@@ -35,17 +40,11 @@
     "./catalog-tools": {
       "types": "./dist/catalog-tools.d.ts",
       "import": "./dist/catalog-tools.js"
-    },
-    "./openui": {
-      "types": "./dist/openui.d.ts",
-      "import": "./dist/openui.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "vite build",
     "type-check": "tsc --noEmit",
@@ -58,13 +57,6 @@
     "release:major": "pnpm release major",
     "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "peerDependencies": {
-    "react": ">=19",
-    "react-dom": ">=19"
   },
   "dependencies": {
     "@json-render/core": "^0.18.0",
@@ -122,8 +114,12 @@
     "vite-plugin-dts": "^4.3.0",
     "vitest": "^3.2.4"
   },
-  "packageManager": "pnpm@10.28.1",
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "packageManager": "pnpm@10.28.1"
 }

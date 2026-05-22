@@ -23,7 +23,6 @@ export default defineConfig({
         components: resolve(__dirname, 'src/components.tsx'),
         catalog: resolve(__dirname, 'src/catalog.ts'),
         'catalog-tools': resolve(__dirname, 'src/catalog-tools.ts'),
-        openui: resolve(__dirname, 'src/openui.tsx'),
       },
       formats: ['es'],
     },
